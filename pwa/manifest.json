@@ -1,14 +1,14 @@
 {
-  "name": "BY Blog",
-  "short_name": "BY Blog",
+  "name": "Test Blog",
+  "short_name": "Test Blog",
   "description": "A personal blog by engineer",
   "icons": [{
-    "src": "icons/pwa_icon_128.png",
+    "src": "icons/pwa_icon128.png",
     "sizes": "128x128",
     "type": "image/png"
   }, {
-    "src": "icons/pwa_icon_512.png",
-    "sizes": "512x512",
+    "src": "icons/pwa_icon256.png",
+    "sizes": "256x256",
     "type": "image/png"
   }],
   "background_color": "#fff",
