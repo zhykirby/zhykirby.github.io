@@ -42,12 +42,12 @@ const route = {
 
 # beforeEach和afterEach的一些玩法
 
-beforeEach是vue-router的全局前置守卫，接收三个参数：to，from，next。其中**一定要调用next方法来resolve钩子**。next可以改变导航。  
-afterEach是vue-router的全局后置钩子，接收两个参数：to，from。与守卫不同的是钩子不会接收next也不会改变导航。  
-以上是beforeEach和afterEach的基本知识，运用和beforeEach和afterEach能有一些有意思的玩法。  
+`beforeEach`是`vue-router`的全局前置守卫，接收三个参数：to，from，next。其中**一定要调用next方法来resolve钩子**。next可以改变导航。  
+`afterEach`是`vue-router`的全局后置钩子，接收两个参数：to，from。与守卫不同的是钩子不会接收next也不会改变导航。  
+以上是`beforeEach`和`afterEach`的基本知识，运用和`beforeEach`和`afterEach`能有一些有意思的玩法。  
 比如：
 ## 长页面跳转自动回到顶部
-有时候在浏览到一个很长的页面时，点击下一页就会自动跳转到页面顶部，这就可以用afterEach钩子函数实现。（要是啥都不写的话，到下一页还是停留在同样的位置）
+有时候在浏览到一个很长的页面时，点击下一页就会自动跳转到页面顶部，这就可以用`afterEach`钩子函数实现。（要是啥都不写的话，到下一页还是停留在同样的位置）
 实现如下：
 ```
 router.afterEach((to, from) => {
@@ -55,9 +55,9 @@ router.afterEach((to, from) => {
 })
 ```
 ## 动态修改页面标题
-标题是由title标签控制的，但是在一个SPA（单页面应用）中，切换到不同页面时，实际上title标签没有变（作为容器的html没变），因此要切换标题就需要用js来控制。  
-我们可以在每个组件的mounted钩子函数中写个js来控制标题，但是页面增多就会增加维护成本。  
-因此我们可以注册个全局守卫，在路由发生变化时，统一设置。（其实现在都是用vue-meta的吧，感觉会更方便点？）  
+标题是由`title`标签控制的，但是在一个SPA（单页面应用）中，切换到不同页面时，实际上`title`标签没有变（作为容器的html没变），因此要切换标题就需要用js来控制。  
+我们可以在每个组件的`mounted`钩子函数中写个js来控制标题，但是页面增多就会增加维护成本。  
+因此我们可以注册个全局守卫，在路由发生变化时，统一设置。（其实现在都是用`vue-meta`的吧，感觉会更方便点？）  
 ```
 import Vue from 'vue'
 import VueRouter from 'vue-router'
@@ -85,5 +85,62 @@ router.beforeEach((to, from, next) => {
     next()
 })
 ```
-在路由信息数组里设置一个meta数组，包含了title信息，然后再全局守卫里修改title为meta里的title信息，来实现动态修改标题。
+在路由信息数组里设置一个`meta`数组，包含了`title`信息，然后再全局守卫里修改`title`为`meta`里的`title`信息，来实现动态修改标题。
 ## 登录验证
+使用`localStorage`和`beforeEach`可以实现登录验证（但我觉得还是后端`jsonwebtoken`比较好？）。  
+代码如下：
+```
+router.beforeEach((to, from, next) => {
+    if(window.localStorage.getItem('token')) {
+        next();
+    } else {
+        next('/login');
+    }
+})
+```
+`next()`入参，如果是false，会不导航；如果为路径，则会导航到指定路径下面。
+
+## 响应路由变化
+这两天写vue-ts的一个demo时，碰到一个很蛋疼的问题花了我好久时间，虽然后来发现是命名有问题，但我觉得还是可以记录一下这个问题的。  
+vue-router文档上有写到，当同一个路由下切换子路由时，原来的组件实例会被复用。**因为两个路由都渲染同个组件，比起销毁再创建，复用则显得更加高效。不过，这也意味着组件的生命周期钩子不会再被调用。**  
+这时候会发生，路由不响应的问题。要想动态响应，文档给出了一个方法：watch $route对象。这里记录下另一个方法，provide/inject方法。  
+这个其实就是给子组件注入依赖，router-view绑定个`isRouterActive`状态的p判断，当路由切换时，调用methods里的`reload`方法实现刷新。代码如下： 
+ 
+```
+//父组件
+export default{
+    data() {
+        return {
+            isRouterActive: true
+        }
+    },
+    provide() {
+        return {
+            reload: this.reload
+        }
+    },
+    methods:{
+        reload() {
+            this.isRouterActive = false
+            this.$nextTick(() => (this.isRouterActive = true))
+        }
+    }
+}
+
+//子路由
+<template>
+    <div class="main" @success="successHandle">
+        <div class="info"><router-view/></div>
+    </div>
+</template>
+<script>
+export default{
+    inject: ['reload'],
+    methods: {
+        async successHandle() {
+            this.reload()
+        }
+    }
+}
+</script>
+```
